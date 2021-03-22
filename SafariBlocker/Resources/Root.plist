@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.p2kdev.tabblocker</string>
+			<key>key</key>
+			<string>showBagelMenu</string>
+			<key>label</key>
+			<string>Show Blocked Message</string>
+			<key>PostNotification</key>
+			<string>com.p2kdev.safariblocker.settingschanged</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Whitelisted Domains</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
+			<key>label</key>
+			<string>Specify Whitelisted Domains...</string>
+			<key>action</key>
+			<string>launchAllowedDomainOptions</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Blocked Domains</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
+			<key>label</key>
+			<string>Specify Blocked Domains...</string>
+			<key>action</key>
+			<string>launchBlockedDomainOptions</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Blocked URLs</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
+			<key>label</key>
+			<string>Specify Blocked URLs...</string>
+			<key>action</key>
+			<string>launchBlockedURLOptions</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Support</string>
+			<key>footerText</key>
+			<string>Wish to donate? Donation link found on my twitter bio. Please click the above link to visit my twitter profile!</string>
+		</dict>
+
+		<dict>
+			<key>action</key>
+			<string>visitTwitter</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Follow me on Twitter @p2kdev</string>
+			<key>icon</key>
+			<string>twitter.png</string>
+		</dict>
+
+			<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerAlignment</key>
+			<integer>1</integer>
+			<key>footerText</key>
+			<string>@2021 P2KDev (@p2kdev)</string>
+		</dict>
+
+	</array>
+
+	<key>title</key>
+	<string>SafariBlocker</string>
+</dict>
+</plist>
