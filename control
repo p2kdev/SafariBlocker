@@ -1,7 +1,7 @@
 Package: com.p2kdev.safariblocker
 Name: SafariBlocker
 Depends: mobilesubstrate, preferenceloader, com.opa334.libundirect (>=1.0)
-Version: 1.1.1
+Version: 1.2
 Architecture: iphoneos-arm
 Description: Block New Tabs with Options!
 Maintainer: P2KDev <p2kdev@gmail.com>
