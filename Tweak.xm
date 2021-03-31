@@ -5,17 +5,76 @@
 
 //Credits to MrChrisBarker for ToastMenu https://github.com/MrChrisBarker/bagel-objectivec-toast
 
-@interface TabDocument
-  -(NSString *)URLString;
+@interface LoadingController : NSObject
+- (NSURL*)URL;
 @end
 
-@interface TabController
+@interface TabDocument : NSObject
+@end
+
+@interface TabController : NSObject
   -(void)updateSafariBlockerPrefsForActionType:(int)action blockedData:(NSString*)content;
   -(void)showToastWithMessage:(NSString*)arg1;
 @end
 
+@interface SFBarRegistration : NSObject
+- (BOOL)containsBarItem:(NSInteger)barItem;
+@end
+
+@interface _SFToolbar : NSObject
+@property (nonatomic,weak) SFBarRegistration* barRegistration;
+@end
+
+@interface BrowserToolbar : _SFToolbar
+@end
+
+@interface NavigationBar : NSObject
+- (id)_toolbarForBarItem:(NSInteger)barItem;
+@end
+
+@interface BrowserRootViewController : UIViewController
+@property (readonly, nonatomic) BrowserToolbar* bottomToolbar;
+@property (readonly, nonatomic) NavigationBar* navigationBar;
+@end
+
+static _SFToolbar* activeToolbarOrToolbarForBarItemForBrowserRootViewController(BrowserRootViewController* rootVC, NSInteger barItem)
+{
+	if(!rootVC) return nil;
+
+  if([rootVC.bottomToolbar.barRegistration containsBarItem:barItem])
+  {
+    return rootVC.bottomToolbar;
+  }
+  else 
+  {
+    if([rootVC.navigationBar respondsToSelector:@selector(_toolbarForBarItem:)])
+    {
+      return [rootVC.navigationBar _toolbarForBarItem:barItem];
+    }
+    else //iOS 14
+    {
+      _SFToolbar* leadingToolbar = [rootVC.navigationBar valueForKey:@"_leadingToolbar"];
+      _SFToolbar* trailingToolbar = [rootVC.navigationBar valueForKey:@"_trailingToolbar"];
+
+      if([leadingToolbar.barRegistration containsBarItem:barItem])
+      {
+        return (BrowserToolbar*)leadingToolbar;
+      }
+
+      if([trailingToolbar.barRegistration containsBarItem:barItem])
+      {
+        return (BrowserToolbar*)trailingToolbar;
+      }
+
+      return nil;
+    }
+  }
+}
+
 //Store the preferences in Safari Home Directory to avoid sandbox issues
 #define prefFilePath [NSString stringWithFormat:@"%@/Library/Preferences/com.p2kdev.safariblocker.plist", NSHomeDirectory()]
+
+static BOOL skipNextTabOpen = NO;
 
 static NSMutableArray * blockedURLs;
 static NSMutableArray * blockedDomains;
@@ -35,6 +94,13 @@ static NSString* removeJunk(NSString* url)
 
   - (void)_insertTabDocument:(id)tabDocument atIndex:(NSUInteger)index inBackground:(BOOL)inBackground animated:(BOOL)animated updateUI:(BOOL)updateUI
   {
+    if(skipNextTabOpen)
+    {
+      %orig;
+      skipNextTabOpen = NO;
+      return;
+    }
+
     TabDocument *originalTab;
 
     @try
@@ -47,10 +113,11 @@ static NSString* removeJunk(NSString* url)
       NSLog(@"Error while fetching parentTab %@",ex.reason);
     }
 
-    if (originalTab && [originalTab URLString])
-    {
-        NSURL *originalURL = [NSURL URLWithString:[originalTab URLString]];
+    LoadingController* loadingController = [originalTab valueForKey:@"_loadingController"];
+    NSURL *originalURL = [loadingController URL];
 
+    if (originalTab && originalURL)
+    {
         NSString *domainForURL = removeJunk([originalURL host]);
         NSString *URLWithoutJunk = removeJunk([originalURL resourceSpecifier]);
 
@@ -131,8 +198,21 @@ static NSString* removeJunk(NSString* url)
             [alert addAction:blockDomain];
             [alert addAction:blockURL];
             [alert addAction:cancelAction];
-            NSPredicate *isKeyWindow = [NSPredicate predicateWithFormat:@"isKeyWindow == YES"];
-            [[[[UIApplication sharedApplication] windows] filteredArrayUsingPredicate:isKeyWindow].firstObject.rootViewController presentViewController:alert animated:YES completion:nil];
+
+            BrowserRootViewController* rootVC = [[self valueForKey:@"_browserController"] valueForKey:@"_rootViewController"];
+            _SFToolbar* activeToolbar = activeToolbarOrToolbarForBarItemForBrowserRootViewController(rootVC, 5);
+            if(activeToolbar)
+            {
+              //set popover position to tab expose item in toolbar (looks better on iPad)
+              UIView* sourceView = [[activeToolbar.barRegistration valueForKey:@"_tabExposeItem"] valueForKey:@"_view"];
+              if(sourceView)
+              {
+                alert.popoverPresentationController.sourceView = sourceView;
+                alert.popoverPresentationController.sourceRect = sourceView.bounds;
+              }
+            }
+
+            [rootVC presentViewController:alert animated:YES completion:nil];
       }
       else
         %orig;
@@ -141,7 +221,8 @@ static NSString* removeJunk(NSString* url)
   %new
     -(void)showToastWithMessage:(NSString*)message
     {
-      [[Bagel shared] pop:nil withMessage:message];
+      UIViewController* rootVC = [[self valueForKey:@"_browserController"] valueForKey:@"_rootViewController"];
+      [[Bagel shared] pop:rootVC.view withMessage:message];
     }
 
   %new
@@ -195,6 +276,30 @@ static void updatePrefs(){
     [blockedDomains removeObject:@""];
     [allowedDomains removeObject:@""];
 }
+
+typedef void (^UIActionHandler)(__kindof UIAction *action);
+@interface UIAction (Private)
+@property (nonatomic) UIActionHandler handler;
+@end
+
+%hook _SFLinkPreviewHelper
+
+- (UIAction*)openInNewTabActionForURL:(NSURL*)arg1 preActionHandler:(id)arg2
+{
+  UIAction* action = %orig;
+
+  UIActionHandler prevHandler = action.handler;
+  action.handler = ^(__kindof UIAction* action)
+  {
+    skipNextTabOpen = YES;
+    prevHandler(action);
+    skipNextTabOpen = NO;
+  };
+
+  return action;
+}
+
+%end
 
 //Thanks to @opa334 for the below stuff
 #ifdef __arm64e__
