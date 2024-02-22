@@ -1,6 +1,4 @@
-#import <Preferences/Preferences.h>
-#import <Preferences/PSListController.h>
-#import <Preferences/PSTextFieldSpecifier.h>
+#include <Preferences/Preferences.h>
 #include <objc/runtime.h>
 #import <spawn.h>
 
@@ -152,7 +150,7 @@ NSString *prefFilePath;
 	if ([cell isKindOfClass:objc_getClass("PSEditableTableCell")])
 	{
 		PSEditableTableCell *editableCell = (PSEditableTableCell *)cell;
-		if (editableCell.textField)
+		if ([editableCell textField])
 		{
 			UIToolbar *keyboardDoneButtonView = [[UIToolbar alloc] init];
 			[keyboardDoneButtonView sizeToFit];
@@ -166,7 +164,7 @@ NSString *prefFilePath;
 
 			keyboardDoneButtonView.items = [NSArray arrayWithObjects:flexBarButton,doneBarButton,nil];
 			//[keyboardDoneButtonView setItems:[NSArray arrayWithObjects:doneButton, nil]];
-	    ((UITextField *)editableCell.textField).inputAccessoryView = keyboardDoneButtonView;
+	    ((UITextField *)[editableCell textField]).inputAccessoryView = keyboardDoneButtonView;
 		}
 	}
 

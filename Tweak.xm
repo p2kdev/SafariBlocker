@@ -1,6 +1,4 @@
 #import <Foundation/Foundation.h>
-#import <libundirect/libundirect.h>
-#import <libundirect/libundirect_hookoverwrite.h>
 #import "Bagel/Bagel.h"
 
 //Credits to MrChrisBarker for ToastMenu https://github.com/MrChrisBarker/bagel-objectivec-toast
@@ -92,7 +90,7 @@ static NSString* removeJunk(NSString* url)
 
 %hook TabController
 
-  - (void)_insertTabDocument:(id)tabDocument atIndex:(NSUInteger)index inBackground:(BOOL)inBackground animated:(BOOL)animated updateUI:(BOOL)updateUI
+  - (void)insertTabDocument:(id)tabDocument afterTabDocument:(id)existingTabDoc inBackground:(BOOL)inBackground animated:(BOOL)animated
   {
     if(skipNextTabOpen)
     {
@@ -279,41 +277,30 @@ static void updatePrefs(){
 
 typedef void (^UIActionHandler)(__kindof UIAction *action);
 @interface UIAction (Private)
-@property (nonatomic) UIActionHandler handler;
+  @property (nonatomic) UIActionHandler handler;
 @end
 
 %hook _SFLinkPreviewHelper
 
-- (UIAction*)openInNewTabActionForURL:(NSURL*)arg1 preActionHandler:(id)arg2
-{
-  UIAction* action = %orig;
-
-  UIActionHandler prevHandler = action.handler;
-  action.handler = ^(__kindof UIAction* action)
+  - (UIAction*)openInNewTabActionForURL:(NSURL*)arg1 preActionHandler:(id)arg2
   {
-    skipNextTabOpen = YES;
-    prevHandler(action);
-    skipNextTabOpen = NO;
-  };
+    UIAction* action = %orig;
 
-  return action;
-}
+    UIActionHandler prevHandler = action.handler;
+    action.handler = ^(__kindof UIAction* action)
+    {
+      skipNextTabOpen = YES;
+      prevHandler(action);
+      skipNextTabOpen = NO;
+    };
+
+    return action;
+  }
 
 %end
-
-//Thanks to @opa334 for the below stuff
-#ifdef __arm64e__
-#define ifArm64eElse(a,b) (a)
-#else
-#define ifArm64eElse(a,b) (b)
-#endif
 
 %ctor
 {
   CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)updatePrefs, CFSTR("com.p2kdev.safariblocker.settingschanged"), NULL, CFNotificationSuspensionBehaviorCoalesce);
   updatePrefs();
-
-  //obj_direct magic
-  void* insertTabDocumentPtr = libundirect_find(@"MobileSafari", (unsigned char[]){0xF8, 0x03, 0x06, 0xAA, 0xF5, 0x03, 0x05, 0xAA}, 8, ifArm64eElse(0x7F, 0xFC));
-	libundirect_rebind(insertTabDocumentPtr, NSClassFromString(@"TabController"), @selector(_insertTabDocument:atIndex:inBackground:animated:updateUI:), "v@:@QBBB");
 }
